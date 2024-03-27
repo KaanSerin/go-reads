@@ -8,19 +8,31 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/joho/godotenv"
 	api "github.com/kaanserin/go-reads/internal/api"
 )
 
 func main() {
+	// Load environment variables
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	// Initialize an http server
-	server, err := api.NewServer(":8080")
+	apiUrl := os.Getenv("API_HOST")
+	if apiUrl == "" {
+		apiUrl = ":8080"
+	}
+
+	server, err := api.NewServer(apiUrl)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// Listening inside a go-routine to not block main thread
 	go func() {
-		log.Printf("Server running on %s\n", ":8080")
+		log.Printf("Server running on %s\n", apiUrl)
 		server.ListenAndServe()
 	}()
 

@@ -2,6 +2,8 @@ package database
 
 import (
 	"database/sql"
+	"fmt"
+	"os"
 
 	_ "github.com/lib/pq"
 )
@@ -19,7 +21,13 @@ type PostgresqlStorage struct {
 }
 
 func NewPostgresStorage() (*PostgresqlStorage, error) {
-	connStr := "user=pqgotest dbname=pqgotest sslmode=verify-full"
+	dbHost := os.Getenv("DB_HOST")
+	dbPort := os.Getenv("DB_PORT")
+	dbName := os.Getenv("DB_NAME")
+	dbUser := os.Getenv("DB_USERNAME")
+	dbPass := os.Getenv("DB_PASSWORD")
+
+	connStr := fmt.Sprintf("host=%s port=%s sslmode=disable dbname=%s user=%s password=%s", dbHost, dbPort, dbName, dbUser, dbPass)
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
 		return nil, err
