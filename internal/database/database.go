@@ -6,16 +6,16 @@ import (
 	_ "github.com/lib/pq"
 )
 
-type Storage interface {
-	CreateUser() error
+type contextKey string
+
+const DBContextKey contextKey = "db"
+
+func (c contextKey) String() string {
+	return string(c)
 }
 
 type PostgresqlStorage struct {
-	db *sql.DB
-}
-
-func (storage *PostgresqlStorage) CreateUser() error {
-	return nil
+	DB *sql.DB
 }
 
 func NewPostgresStorage() (*PostgresqlStorage, error) {
@@ -26,6 +26,6 @@ func NewPostgresStorage() (*PostgresqlStorage, error) {
 	}
 
 	return &PostgresqlStorage{
-		db: db,
+		DB: db,
 	}, nil
 }
