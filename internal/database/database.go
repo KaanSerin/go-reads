@@ -3,7 +3,9 @@ package database
 import (
 	"database/sql"
 	"fmt"
+	"net/http"
 	"os"
+	"time"
 
 	_ "github.com/lib/pq"
 )
@@ -16,8 +18,100 @@ func (c contextKey) String() string {
 	return string(c)
 }
 
+type User struct {
+	ID        string    `json:"id"`
+	FirstName string    `json:"first_name"`
+	LastName  string    `json:"last_name"`
+	Email     string    `json:"email"`
+	Password  string    `json:"password,omitempty"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
 type PostgresqlStorage struct {
-	DB *sql.DB
+	db *sql.DB
+}
+
+type Storage interface {
+	GetUsers() ([]*User, error)
+	GetUserById(int) (*User, error)
+	GetUserByEmail(string) (*User, error)
+	CreateUser(string, string, string, string) (*User, error)
+}
+
+func (storage *PostgresqlStorage) GetUserById(id int) (*User, error) {
+	var user *User = &User{}
+
+	err := storage.db.QueryRow(
+		"SELECT  first_name, last_name, email, created_at from users where id = $1", id).Scan(
+		&user.ID,
+		&user.FirstName,
+		&user.LastName,
+		&user.Email,
+		&user.CreatedAt,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
+}
+
+func (storage *PostgresqlStorage) GetUsers() ([]*User, error) {
+	var users []*User = []*User{}
+
+	query := "select id, first_name, last_name, email, created_at from users"
+	rows, err := storage.db.Query(query)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var user User
+		if err := rows.Scan(&user.ID, &user.FirstName, &user.LastName, &user.Email, &user.CreatedAt); err != nil {
+			return nil, err
+		}
+
+		users = append(users, &user)
+	}
+
+	return users, nil
+}
+
+func (storage *PostgresqlStorage) GetUserByEmail(email string) (*User, error) {
+	var user *User = &User{}
+
+	err := storage.db.QueryRow(
+		"SELECT id, first_name, last_name, email, created_at from users where email = $1", email).Scan(
+		&user.ID,
+		&user.FirstName,
+		&user.LastName,
+		&user.Email,
+		&user.CreatedAt,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
+}
+
+func (storage *PostgresqlStorage) CreateUser(first_name, last_name, email, password string) (*User, error) {
+	_, err := storage.db.Exec(
+		"INSERT INTO users (first_name, last_name, email, password) VALUES ($1, $2, $3, $4)",
+		first_name,
+		last_name,
+		email,
+		password)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return storage.GetUserByEmail(email)
 }
 
 func NewPostgresStorage() (*PostgresqlStorage, error) {
@@ -42,6 +136,11 @@ func NewPostgresStorage() (*PostgresqlStorage, error) {
 	}
 
 	return &PostgresqlStorage{
-		DB: db,
+		db: db,
 	}, nil
+}
+
+func GetPgStorageFromRequest(r *http.Request) (*PostgresqlStorage, error) {
+	db := r.Context().Value(DBContextKey).(*PostgresqlStorage)
+	return db, nil
 }
