@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/kaanserin/go-reads/internal/database"
 	utils "github.com/kaanserin/go-reads/internal/utils"
 )
 
@@ -16,10 +17,15 @@ func GetUsersRouter(r chi.Router) {
 
 // Handler Functions
 func getUsers(w http.ResponseWriter, r *http.Request) error {
-	users, err := GetUsers(r)
+	db, err := database.GetPgStorageFromRequest(r)
 	if err != nil {
 		return err
 	}
 
-	return utils.JSONResponse(w, 200, users)
+	users, err := GetUsers(db)
+	if err != nil {
+		return err
+	}
+
+	return utils.JSONResponse(w, http.StatusOK, users)
 }
