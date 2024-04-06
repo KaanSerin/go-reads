@@ -3,6 +3,8 @@ package utils
 import (
 	"encoding/json"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
 )
 
 func JSONResponse(w http.ResponseWriter, statusCode int, v any) error {
@@ -11,12 +13,13 @@ func JSONResponse(w http.ResponseWriter, statusCode int, v any) error {
 	return json.NewEncoder(w).Encode(v)
 }
 
-type functionWithError = func(w http.ResponseWriter, r *http.Request) error
+type functionWithError = func(c *gin.Context) error
 
-func MakeHandlerFunc(fn functionWithError) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if err := fn(w, r); err != nil {
-			JSONResponse(w, 500, err.Error())
+func MakeHandlerFunc(fn functionWithError) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		err := fn(c)
+		if err != nil {
+			c.JSON(400, CustomError{Message: err.Error()})
 		}
 	}
 }
