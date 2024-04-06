@@ -36,6 +36,7 @@ type Storage interface {
 	GetUserById(int) (*User, error)
 	GetUserByEmail(string) (*User, error)
 	CreateUser(string, string, string, string) (*User, error)
+	DeleteUserById(int) error
 }
 
 func (storage *PostgresqlStorage) GetUserById(id int) (*User, error) {
@@ -112,6 +113,11 @@ func (storage *PostgresqlStorage) CreateUser(first_name, last_name, email, passw
 	}
 
 	return storage.GetUserByEmail(email)
+}
+
+func (storage *PostgresqlStorage) DeleteUserById(id int) error {
+	_, err := storage.db.Exec(fmt.Sprintf("DELETE FROM users where id = %d", id))
+	return err
 }
 
 func NewPostgresStorage() (*PostgresqlStorage, error) {
