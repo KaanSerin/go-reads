@@ -35,7 +35,7 @@ type Storage interface {
 	GetUsers() ([]*User, error)
 	GetUserById(int) (*User, error)
 	GetUserByEmail(string) (*User, error)
-	CreateUser(string, string, string, string) (*User, error)
+	CreateUser(firstName, lastName, email, password string) (*User, error)
 	DeleteUserById(int) error
 }
 
