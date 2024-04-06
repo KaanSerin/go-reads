@@ -2,17 +2,19 @@ package auth
 
 import (
 	"encoding/json"
-	"net/http"
+	"fmt"
+	"os"
+	"time"
 
-	"github.com/go-chi/chi/v5"
+	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/kaanserin/go-reads/internal/database"
 	"github.com/kaanserin/go-reads/internal/utils"
+	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/validator.v2"
 )
 
-func GetAuthRouter(r chi.Router) {
-	r.Post("/sign_up", utils.MakeHandlerFunc(signUpHandler))
-}
+var makeHandlerFunc = utils.MakeHandlerFunc
 
 type CreateUserDto struct {
 	FirstName string `validate:"nonzero"`
@@ -21,9 +23,21 @@ type CreateUserDto struct {
 	Password  string `validate:"nonzero"`
 }
 
-func signUpHandler(w http.ResponseWriter, r *http.Request) error {
+type AuthUserResponse struct {
+	User        *database.User `json:"user"`
+	AccessToken string         `json:"accessToken"`
+}
+
+// Register Handlers
+func AddAuthRoutes(c *gin.Engine) {
+	router := c.Group("/auth")
+	router.POST("/sign_up", makeHandlerFunc(signUpHandler))
+}
+
+// Handlers
+func signUpHandler(c *gin.Context) error {
 	var createUserDto CreateUserDto
-	err := json.NewDecoder(r.Body).Decode(&createUserDto)
+	err := json.NewDecoder(c.Request.Body).Decode(&createUserDto)
 	if err != nil {
 		return err
 	}
@@ -32,15 +46,53 @@ func signUpHandler(w http.ResponseWriter, r *http.Request) error {
 		return errs
 	}
 
-	db, err := database.GetPgStorageFromRequest(r)
+	db, err := database.GetPgStorageFromRequest(c.Request)
 	if err != nil {
 		return err
 	}
+
+	hashedPassword, err := hashPassword(createUserDto.Password)
+	if err != nil {
+		return err
+	}
+
+	createUserDto.Password = hashedPassword
 
 	user, err := SignUp(createUserDto, db)
 	if err != nil {
 		return err
 	}
 
-	return utils.JSONResponse(w, 200, user)
+	claims := &jwt.RegisteredClaims{
+		ID:        user.ID,
+		IssuedAt:  jwt.NewNumericDate(time.Now()),
+		ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	appKey := os.Getenv("APP_KEY")
+	fmt.Printf("app key %s\n", appKey)
+
+	accessToken, err := token.SignedString([]byte(appKey))
+	if err != nil {
+		c.JSON(200, nil)
+	}
+
+	fmt.Printf("Access token %s\n", accessToken)
+
+	c.JSON(200, AuthUserResponse{
+		User:        user,
+		AccessToken: accessToken,
+	})
+	return nil
+}
+
+func hashPassword(password string) (string, error) {
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return "", err
+	}
+
+	return string(hashedPassword), nil
 }
