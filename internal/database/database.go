@@ -42,7 +42,7 @@ func (storage *PostgresqlStorage) GetUserById(id int) (*User, error) {
 	var user *User = &User{}
 
 	err := storage.db.QueryRow(
-		"SELECT  first_name, last_name, email, created_at from users where id = $1", id).Scan(
+		"SELECT id, first_name, last_name, email, created_at from users where id = $1", id).Scan(
 		&user.ID,
 		&user.FirstName,
 		&user.LastName,
