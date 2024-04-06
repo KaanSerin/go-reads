@@ -64,7 +64,7 @@ func signUpHandler(c *gin.Context) error {
 	}
 
 	claims := &jwt.RegisteredClaims{
-		ID:        user.ID,
+		ID:        fmt.Sprint(user.ID),
 		IssuedAt:  jwt.NewNumericDate(time.Now()),
 		ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
 	}
