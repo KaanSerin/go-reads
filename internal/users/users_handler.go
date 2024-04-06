@@ -1,9 +1,9 @@
 package users
 
 import (
-	"net/http"
+	"strconv"
 
-	"github.com/go-chi/chi/v5"
+	"github.com/gin-gonic/gin"
 	"github.com/kaanserin/go-reads/internal/database"
 	utils "github.com/kaanserin/go-reads/internal/utils"
 )
@@ -11,13 +11,15 @@ import (
 var makeHandlerFunc = utils.MakeHandlerFunc
 
 // Router
-func GetUsersRouter(r chi.Router) {
-	r.Get("/", makeHandlerFunc(getUsers))
+func AddUserRoutes(g *gin.Engine) {
+	users := g.Group("/users")
+	users.GET("/", makeHandlerFunc(getUsers))
+	users.GET("/:id", makeHandlerFunc(getUserById))
 }
 
 // Handler Functions
-func getUsers(w http.ResponseWriter, r *http.Request) error {
-	db, err := database.GetPgStorageFromRequest(r)
+func getUsers(c *gin.Context) error {
+	db, err := database.GetPgStorageFromRequest(c.Request)
 	if err != nil {
 		return err
 	}
@@ -27,5 +29,26 @@ func getUsers(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	return utils.JSONResponse(w, http.StatusOK, users)
+	c.JSON(200, users)
+	return nil
+}
+
+func getUserById(c *gin.Context) error {
+	db, err := database.GetPgStorageFromRequest(c.Request)
+	if err != nil {
+		return err
+	}
+
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		return err
+	}
+
+	user, err := GetUserById(db, id)
+	if err != nil {
+		return err
+	}
+
+	c.JSON(200, user)
+	return nil
 }
