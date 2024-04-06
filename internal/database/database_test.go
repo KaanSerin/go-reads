@@ -6,16 +6,26 @@ import (
 	"github.com/joho/godotenv"
 )
 
-func TestMain(t *testing.T) {
+func TestPostgresStorage(t *testing.T) {
 	godotenv.Load("../../.env")
+	var storage Storage
+
+	// Test with storage of choice
 	storage, err := NewPostgresStorage()
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	createUserPayload := User{
+		FirstName: "TestFirstName",
+		LastName:  "TestLastName",
+		Email:     "testmail@mail.com",
+		Password:  "pass",
+	}
+
 	t.Run("TestCreateUserWithValidInputsAndDelete", func(t *testing.T) {
 		// Create a user
-		user, err := storage.CreateUser("TestFirstName", "TestLastName", "testmail@mail.com", "pass")
+		user, err := storage.CreateUser(createUserPayload.FirstName, createUserPayload.LastName, createUserPayload.Email, createUserPayload.Password)
 		if err != nil {
 			t.Error(err)
 		}
@@ -31,7 +41,19 @@ func TestMain(t *testing.T) {
 			t.Error("User ID is empty")
 		}
 
-		// Check if the user created at is not empty
+		// Check user fields
+		if user.FirstName != createUserPayload.FirstName {
+			t.Errorf("User first name is not equal to %s", createUserPayload.FirstName)
+		}
+
+		if user.LastName != createUserPayload.LastName {
+			t.Errorf("User last name is not equal to %s", createUserPayload.LastName)
+		}
+
+		if user.Email != createUserPayload.Email {
+			t.Errorf("User email %s is not equal to %s", user.Email, createUserPayload.Email)
+		}
+
 		if user.CreatedAt.IsZero() {
 			t.Error("User created at is empty")
 		}
