@@ -51,7 +51,8 @@ func main() {
 	log.Println("Received terminate, gracefully shutting down...", sig)
 
 	// Create a context with 30 second timeout
-	tcContext, _ := context.WithTimeout(context.Background(), 30*time.Second)
+	tcContext, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
 
 	// Shut down the server
 	// If the current connections are not handled in 30 seconds(tcContext), forcefully close them
