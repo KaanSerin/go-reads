@@ -10,7 +10,9 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 # Copy all files to /app folder
+# Create .env using .env.example if it doesn't exist
 COPY . ./
+RUN cp -n ./.env.example ./.env
 
 RUN rm -rf ./bin
 RUN mkdir bin
