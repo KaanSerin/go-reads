@@ -20,7 +20,9 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Build and run app image
-      run: docker compose up --build app
+      run: docker compose up --build -d app
     - name: Build and run tests
       run: docker compose up --build test
+    - name: Stop and remove app container
+      run: docker compose down
 
