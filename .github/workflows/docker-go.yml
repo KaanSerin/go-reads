@@ -1,0 +1,22 @@
+name: Docker Go
+
+on:
+  push:
+    branches:
+    - main
+  pull_request:
+    branches:
+    - main
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build and run app image
+      run: docker compose up --build app
+    - name: Build and run tests
+      run: docker compose up --build test
+
