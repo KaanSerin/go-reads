@@ -29,7 +29,7 @@ jobs:
           echo "Expected HTTP status 200 but got $response"
           exit 1
         fi
-    -name : Run test service and exit on failure
+    - name: Run test service and exit on failure
       run: docker compose up --exit-code-from test test
     - name: Stop and remove containers
       run: docker compose down
