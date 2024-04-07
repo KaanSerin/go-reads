@@ -6,5 +6,6 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . ./
+RUN cp -n ./.env.example ./.env
 
 CMD ["go", "test", "-v", "./..."]
