@@ -8,11 +8,6 @@ on:
     branches:
     - main
 
-env:
-  DB_NAME: ${{ secrets.DB_NAME }}
-  DB_USERNAME: ${{ secrets.DB_USERNAME }}
-  DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-
 jobs:
   build:
     runs-on: ubuntu-latest
