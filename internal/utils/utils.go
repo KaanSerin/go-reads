@@ -25,7 +25,7 @@ func MakeHandlerFunc(fn functionWithError) gin.HandlerFunc {
 }
 
 type CustomError struct {
-	Message string
+	Message string `json:"message"`
 }
 
 func (c *CustomError) Error() string {
