@@ -63,18 +63,7 @@ func signUpHandler(c *gin.Context) error {
 		return err
 	}
 
-	claims := &jwt.RegisteredClaims{
-		ID:        fmt.Sprint(user.ID),
-		IssuedAt:  jwt.NewNumericDate(time.Now()),
-		ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-
-	appKey := os.Getenv("APP_KEY")
-	fmt.Printf("app key %s\n", appKey)
-
-	accessToken, err := token.SignedString([]byte(appKey))
+	accessToken, err := getAccessTokenStringForUser(user)
 	if err != nil {
 		c.JSON(200, nil)
 	}
@@ -95,4 +84,16 @@ func hashPassword(password string) (string, error) {
 	}
 
 	return string(hashedPassword), nil
+}
+
+func getAccessTokenStringForUser(user *database.User) (string, error) {
+	claims := &jwt.RegisteredClaims{
+		ID:        fmt.Sprint(user.ID),
+		IssuedAt:  jwt.NewNumericDate(time.Now()),
+		ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	appKey := os.Getenv("APP_KEY")
+	return token.SignedString([]byte(appKey))
 }
