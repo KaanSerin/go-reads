@@ -44,6 +44,7 @@ type Storage interface {
 	GetUserByEmail(string) (*User, error)
 	CreateUser(firstName, lastName, email, password string) (*User, error)
 	DeleteUserById(int) error
+	GetRoleById(int) (*Role, error)
 }
 
 func (storage *PostgresqlStorage) GetUserById(id int) (*User, error) {
@@ -157,6 +158,21 @@ func (storage *PostgresqlStorage) UpdateUserById(id int, payload *UpdateUserDto)
 	user.LastName = payload.LastName
 	user.Email = payload.Email
 	return user, nil
+}
+
+func (storage *PostgresqlStorage) GetRoleById(id int) (*Role, error) {
+	var role *Role = &Role{}
+	err := storage.db.QueryRow("SELECT id, name, created_at FROM roles WHERE id = $1", id).Scan(
+		&role.ID,
+		&role.Name,
+		&role.CreatedAt,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return role, nil
 }
 
 func NewPostgresStorage() (*PostgresqlStorage, error) {
