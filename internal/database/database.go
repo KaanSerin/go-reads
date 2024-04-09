@@ -94,11 +94,12 @@ func (storage *PostgresqlStorage) GetUserByEmail(email string) (*User, error) {
 	var user *User = &User{}
 
 	err := storage.db.QueryRow(
-		"SELECT id, first_name, last_name, email, password, created_at from users where email = $1", email).Scan(
+		"SELECT id, first_name, last_name, email, role_id, password, created_at from users where email = $1", email).Scan(
 		&user.ID,
 		&user.FirstName,
 		&user.LastName,
 		&user.Email,
+		&user.RoleId,
 		&user.Password,
 		&user.CreatedAt,
 	)
