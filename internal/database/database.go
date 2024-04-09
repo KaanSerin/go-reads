@@ -24,6 +24,13 @@ type User struct {
 	LastName  string    `json:"last_name"`
 	Email     string    `json:"email"`
 	Password  string    `json:"password,omitempty"`
+	RoleId    int       `json:"role_id"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type Role struct {
+	ID        int       `json:"id"`
+	Name      string    `json:"name"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
@@ -43,11 +50,12 @@ func (storage *PostgresqlStorage) GetUserById(id int) (*User, error) {
 	var user *User = &User{}
 
 	err := storage.db.QueryRow(
-		"SELECT id, first_name, last_name, email, created_at from users where id = $1", id).Scan(
+		"SELECT id, first_name, last_name, email, role_id, created_at from users where id = $1", id).Scan(
 		&user.ID,
 		&user.FirstName,
 		&user.LastName,
 		&user.Email,
+		&user.RoleId,
 		&user.CreatedAt,
 	)
 
@@ -61,7 +69,7 @@ func (storage *PostgresqlStorage) GetUserById(id int) (*User, error) {
 func (storage *PostgresqlStorage) GetUsers() ([]*User, error) {
 	var users []*User = []*User{}
 
-	query := "select id, first_name, last_name, email, created_at from users"
+	query := "select id, first_name, last_name, email, role_id, created_at from users"
 	rows, err := storage.db.Query(query)
 	if err != nil {
 		return nil, err
@@ -71,7 +79,7 @@ func (storage *PostgresqlStorage) GetUsers() ([]*User, error) {
 
 	for rows.Next() {
 		var user User
-		if err := rows.Scan(&user.ID, &user.FirstName, &user.LastName, &user.Email, &user.CreatedAt); err != nil {
+		if err := rows.Scan(&user.ID, &user.FirstName, &user.LastName, &user.Email, &user.RoleId, &user.CreatedAt); err != nil {
 			return nil, err
 		}
 
