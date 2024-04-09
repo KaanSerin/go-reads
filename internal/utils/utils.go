@@ -31,3 +31,7 @@ type CustomError struct {
 func (c *CustomError) Error() string {
 	return c.Message
 }
+
+type MessageResponse struct {
+	Message string `json:"message"`
+}
