@@ -11,6 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/kaanserin/go-reads/internal/database"
+	"github.com/kaanserin/go-reads/internal/middleware"
 	"github.com/kaanserin/go-reads/internal/utils"
 	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/validator.v2"
@@ -35,6 +36,10 @@ func AddAuthRoutes(c *gin.Engine) {
 	router := c.Group("/auth")
 	router.POST("/sign_up", makeHandlerFunc(signUpHandler))
 	router.POST("/sign_in", makeHandlerFunc(signInHandler))
+
+	// Authenticated Routes
+	router.Use(middleware.Authentication())
+	router.GET("/user", makeHandlerFunc(getSignedInUser))
 }
 
 // Handlers
@@ -153,4 +158,10 @@ func getAccessTokenStringForUser(user *database.User) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	appKey := os.Getenv("APP_KEY")
 	return token.SignedString([]byte(appKey))
+}
+
+func getSignedInUser(c *gin.Context) error {
+	user, _ := c.Get("user")
+	c.JSON(200, user)
+	return nil
 }
