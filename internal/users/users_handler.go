@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/kaanserin/go-reads/internal/database"
+	"github.com/kaanserin/go-reads/internal/middleware"
 	utils "github.com/kaanserin/go-reads/internal/utils"
 	"gopkg.in/validator.v2"
 )
@@ -16,6 +17,10 @@ var makeHandlerFunc = utils.MakeHandlerFunc
 // Router
 func AddUserRoutes(g *gin.Engine) {
 	users := g.Group("/users")
+
+	users.Use(middleware.Authentication())
+	users.Use(middleware.AuthorizeAdmin())
+
 	users.GET("/", makeHandlerFunc(getUsers))
 	users.GET("/:id", makeHandlerFunc(getUserById))
 	users.PUT("/:id", makeHandlerFunc(updateUser))
