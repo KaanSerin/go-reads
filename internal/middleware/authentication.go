@@ -20,10 +20,20 @@ func Authentication() gin.HandlerFunc {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, utils.CustomError{
 				Message: "Unauthorized",
 			})
+
+			return
 		}
 
-		tokenString := strings.Split(authHeader, " ")[1]
+		parts := strings.Split(authHeader, " ")
+		if len(parts) < 2 {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, utils.CustomError{
+				Message: "Unauthorized",
+			})
 
+			return
+		}
+
+		tokenString := parts[1]
 		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 			return []byte(os.Getenv("APP_KEY")), nil
 		})
@@ -34,6 +44,8 @@ func Authentication() gin.HandlerFunc {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, utils.CustomError{
 				Message: "Unauthorized",
 			})
+
+			return
 		}
 
 		claimStrings := token.Claims.(jwt.MapClaims)
@@ -43,6 +55,8 @@ func Authentication() gin.HandlerFunc {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, utils.CustomError{
 				Message: "Unauthorized",
 			})
+
+			return
 		}
 
 		storage, err := database.GetPgStorageFromRequest(c.Request)
@@ -50,6 +64,8 @@ func Authentication() gin.HandlerFunc {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, utils.CustomError{
 				Message: "Unauthorized",
 			})
+
+			return
 		}
 
 		user, err := storage.GetUserById(id)
