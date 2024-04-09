@@ -127,6 +127,30 @@ func (storage *PostgresqlStorage) DeleteUserById(id int) error {
 	return err
 }
 
+type UpdateUserDto struct {
+	ID        int    `json:"id" validate:"nonzero"`
+	FirstName string `json:"first_name" validate:"nonzero"`
+	LastName  string `json:"last_name" validate:"nonzero"`
+	Email     string `json:"email" validate:"nonzero"`
+}
+
+func (storage *PostgresqlStorage) UpdateUserById(id int, payload *UpdateUserDto) (*User, error) {
+	user, err := storage.GetUserById(id)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = storage.db.Exec("UPDATE users SET first_name = $1, last_name = $2, email = $3 WHERE id = $4", payload.FirstName, payload.LastName, payload.Email, id)
+	if err != nil {
+		return nil, err
+	}
+
+	user.FirstName = payload.FirstName
+	user.LastName = payload.LastName
+	user.Email = payload.Email
+	return user, nil
+}
+
 func NewPostgresStorage() (*PostgresqlStorage, error) {
 	dbUrl := os.Getenv("DB_URL")
 	db, err := sql.Open("postgres", dbUrl)

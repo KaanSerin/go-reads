@@ -1,11 +1,14 @@
 package users
 
 import (
+	"encoding/json"
+	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/kaanserin/go-reads/internal/database"
 	utils "github.com/kaanserin/go-reads/internal/utils"
+	"gopkg.in/validator.v2"
 )
 
 var makeHandlerFunc = utils.MakeHandlerFunc
@@ -15,6 +18,7 @@ func AddUserRoutes(g *gin.Engine) {
 	users := g.Group("/users")
 	users.GET("/", makeHandlerFunc(getUsers))
 	users.GET("/:id", makeHandlerFunc(getUserById))
+	users.PUT("/:id", makeHandlerFunc(updateUser))
 	users.DELETE("/:id", makeHandlerFunc(deleteUserById))
 }
 
@@ -98,5 +102,46 @@ func deleteUserById(c *gin.Context) error {
 		Message: "User deleted successfully",
 	})
 
+	return nil
+}
+
+func updateUser(c *gin.Context) error {
+	var updatePayload *database.UpdateUserDto
+	err := json.NewDecoder(c.Request.Body).Decode(&updatePayload)
+	if err != nil {
+		return err
+	}
+
+	if err := validator.Validate(updatePayload); err != nil {
+		return err
+	}
+
+	storage, err := database.GetPgStorageFromRequest(c.Request)
+	if err != nil {
+		return err
+	}
+
+	idParam, _ := c.Params.Get("id")
+	if idParam == "" {
+		return &utils.CustomError{
+			Message: "No id param in given",
+		}
+	}
+
+	id, err := strconv.Atoi(idParam)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, utils.CustomError{
+			Message: "Id is not a number",
+		})
+
+		return nil
+	}
+
+	user, err := storage.UpdateUserById(id, updatePayload)
+	if err != nil {
+		return err
+	}
+
+	c.JSON(http.StatusOK, user)
 	return nil
 }
