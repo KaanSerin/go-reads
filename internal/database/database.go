@@ -85,11 +85,12 @@ func (storage *PostgresqlStorage) GetUserByEmail(email string) (*User, error) {
 	var user *User = &User{}
 
 	err := storage.db.QueryRow(
-		"SELECT id, first_name, last_name, email, created_at from users where email = $1", email).Scan(
+		"SELECT id, first_name, last_name, email, password, created_at from users where email = $1", email).Scan(
 		&user.ID,
 		&user.FirstName,
 		&user.LastName,
 		&user.Email,
+		&user.Password,
 		&user.CreatedAt,
 	)
 
@@ -112,7 +113,13 @@ func (storage *PostgresqlStorage) CreateUser(first_name, last_name, email, passw
 		return nil, err
 	}
 
-	return storage.GetUserByEmail(email)
+	user, err := storage.GetUserByEmail(email)
+	if err != nil {
+		return nil, err
+	}
+
+	user.Password = ""
+	return user, nil
 }
 
 func (storage *PostgresqlStorage) DeleteUserById(id int) error {
