@@ -37,5 +37,6 @@ jobs:
         host: ${{ secrets.DEPLOY_HOST }}
         username: ${{ secrets.DEPLOY_USER }}
         key: ${{ secrets.DEPLOY_KEY }}
+        debug: true
         script: |
           ./dev/go_reads_deploy.sh
