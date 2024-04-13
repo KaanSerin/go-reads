@@ -39,4 +39,4 @@ jobs:
         key: ${{ secrets.DEPLOY_KEY }}
         debug: true
         script: |
-          echo "test"
+          ./dev/go_reads_deploy.sh
