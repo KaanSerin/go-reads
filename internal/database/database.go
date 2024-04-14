@@ -139,8 +139,8 @@ func (storage *PostgresqlStorage) DeleteUserById(id int) error {
 
 type UpdateUserDto struct {
 	ID        int    `json:"id" validate:"nonzero"`
-	FirstName string `json:"first_name" validate:"nonzero"`
-	LastName  string `json:"last_name" validate:"nonzero"`
+	FirstName string `json:"firstName" validate:"nonzero"`
+	LastName  string `json:"lastName" validate:"nonzero"`
 	Email     string `json:"email" validate:"nonzero"`
 }
 
