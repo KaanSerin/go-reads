@@ -20,13 +20,13 @@ func (c contextKey) String() string {
 }
 
 type User struct {
-	ID        int       `json:"id"`
-	FirstName string    `json:"first_name"`
-	LastName  string    `json:"last_name"`
-	Email     string    `json:"email"`
-	Password  string    `json:"password,omitempty"`
-	RoleId    int       `json:"role_id"`
-	CreatedAt time.Time `json:"created_at"`
+	ID        int       `json:"id" db:"id"`
+	FirstName string    `json:"first_name" db:"first_name"`
+	LastName  string    `json:"last_name" db:"last_name"`
+	Email     string    `json:"email" db:"email"`
+	Password  string    `json:"password,omitempty" db:"password"`
+	RoleId    int       `json:"role_id" db:"role_id"`
+	CreatedAt time.Time `json:"created_at" db:"created_at"`
 }
 
 type Role struct {
@@ -93,8 +93,7 @@ func GetLazyPaginatedResponse[V User | Role](r *http.Request, query string) ([]*
 }
 
 type Storage interface {
-	// Users
-	GetUsers() ([]*User, error)
+	GetUsers(r *http.Request) ([]*User, error)
 	GetUserById(int) (*User, error)
 	GetUserByEmail(string) (*User, error)
 	CreateUser(firstName, lastName, email, password string) (*User, error)
@@ -125,24 +124,11 @@ func (storage *PostgresqlStorage) GetUserById(id int) (*User, error) {
 	return user, nil
 }
 
-func (storage *PostgresqlStorage) GetUsers() ([]*User, error) {
-	var users []*User = []*User{}
-
+func (storage *PostgresqlStorage) GetUsers(r *http.Request) ([]*User, error) {
 	query := "select id, first_name, last_name, email, role_id, created_at from users"
-	rows, err := storage.db.Query(query)
+	users, err := GetLazyPaginatedResponse[User](r, query)
 	if err != nil {
 		return nil, err
-	}
-
-	defer rows.Close()
-
-	for rows.Next() {
-		var user User
-		if err := rows.Scan(&user.ID, &user.FirstName, &user.LastName, &user.Email, &user.RoleId, &user.CreatedAt); err != nil {
-			return nil, err
-		}
-
-		users = append(users, &user)
 	}
 
 	return users, nil

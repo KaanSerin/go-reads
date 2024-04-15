@@ -29,12 +29,12 @@ func AddUserRoutes(g *gin.Engine) {
 
 // Handler Functions
 func getUsers(c *gin.Context) error {
-	db, err := database.GetPgStorageFromRequest(c.Request)
+	storage, err := database.GetPgStorageFromRequest(c.Request)
 	if err != nil {
 		return err
 	}
 
-	users, err := GetUsers(db)
+	users, err := storage.GetUsers(c.Request)
 	if err != nil {
 		return err
 	}
@@ -44,7 +44,7 @@ func getUsers(c *gin.Context) error {
 }
 
 func getUserById(c *gin.Context) error {
-	db, err := database.GetPgStorageFromRequest(c.Request)
+	storage, err := database.GetPgStorageFromRequest(c.Request)
 	if err != nil {
 		return err
 	}
@@ -54,7 +54,7 @@ func getUserById(c *gin.Context) error {
 		return err
 	}
 
-	user, err := GetUserById(db, id)
+	user, err := storage.GetUserById(id)
 	if err != nil {
 		return err
 	}
