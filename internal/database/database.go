@@ -1,12 +1,13 @@
 package database
 
 import (
-	"database/sql"
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
+	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 )
 
@@ -178,7 +179,7 @@ func (storage *PostgresqlStorage) GetRoleById(id int) (*Role, error) {
 
 func NewPostgresStorage() (*PostgresqlStorage, error) {
 	dbUrl := os.Getenv("DB_URL")
-	db, err := sql.Open("postgres", dbUrl)
+	db, err := sqlx.Connect("postgres", dbUrl)
 	if err != nil {
 		return nil, err
 	}
