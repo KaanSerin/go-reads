@@ -49,7 +49,47 @@ type Book struct {
 }
 
 type PostgresqlStorage struct {
-	db *sql.DB
+	db *sqlx.DB
+}
+
+func GetLazyPaginatedResponse[V User | Role](r *http.Request, query string) ([]*V, error) {
+	storage, err := GetPgStorageFromRequest(r)
+	if err != nil {
+		return nil, err
+	}
+
+	results := make([]*V, 0)
+
+	page := r.URL.Query().Get("page")
+	if page == "" || page == "0" {
+		page = "1"
+	}
+
+	pageNum, err := strconv.ParseInt(page, 10, 0)
+	if err != nil {
+		return nil, err
+	}
+
+	pageLength := r.URL.Query().Get("pageLength")
+	if pageLength == "" {
+		pageLength = "15"
+	}
+
+	pageLengthNum, err := strconv.ParseInt(pageLength, 10, 0)
+	if err != nil {
+		return nil, err
+	}
+
+	offset := (pageNum - 1) * pageLengthNum
+
+	queryWithLimit := fmt.Sprintf("%s order by id desc offset %d limit %s", query, offset, pageLength)
+
+	err = storage.db.Select(&results, queryWithLimit)
+	if err != nil {
+		return nil, err
+	}
+
+	return results, nil
 }
 
 type Storage interface {
