@@ -34,17 +34,34 @@ type Role struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
+type Book struct {
+	ID              int       `json:"id"`
+	Title           string    `json:"title"`
+	Author          string    `json:"author"`
+	Genre           string    `json:"genre"`
+	PublicationDate time.Time `json:"publication_date"`
+	Publisher       string    `json:"publisher"`
+	ISBN            string    `json:"isbn"`
+	PageCount       string    `json:"page_count"`
+	Language        string    `json:"language"`
+	Format          string    `json:"format"`
+}
+
 type PostgresqlStorage struct {
 	db *sql.DB
 }
 
 type Storage interface {
+	// Users
 	GetUsers() ([]*User, error)
 	GetUserById(int) (*User, error)
 	GetUserByEmail(string) (*User, error)
 	CreateUser(firstName, lastName, email, password string) (*User, error)
 	DeleteUserById(int) error
 	GetRoleById(int) (*Role, error)
+
+	// Books
+	GetBooks() ([]*Book, error)
 }
 
 func (storage *PostgresqlStorage) GetUserById(id int) (*User, error) {
@@ -174,6 +191,39 @@ func (storage *PostgresqlStorage) GetRoleById(id int) (*Role, error) {
 	}
 
 	return role, nil
+}
+
+func (storage *PostgresqlStorage) GetBooks() ([]*Book, error) {
+	books := make([]*Book, 0)
+
+	rows, err := storage.db.Query("SELECT id, title, author, genre, publication_date, publisher, isbn, page_count, language, format FROM books")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var book *Book = &Book{}
+
+		if err := rows.Scan(
+			&book.ID,
+			&book.Title,
+			&book.Author,
+			&book.Genre,
+			&book.PublicationDate,
+			&book.Publisher,
+			&book.ISBN,
+			&book.PageCount,
+			&book.Language,
+			&book.Format,
+		); err != nil {
+			return nil, err
+		}
+
+		books = append(books, book)
+	}
+
+	return books, nil
 }
 
 func NewPostgresStorage() (*PostgresqlStorage, error) {
