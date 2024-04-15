@@ -23,7 +23,7 @@ jobs:
       run: docker compose up --build -d app
     - name: Send ping request and check response
       run: |
-        sleep 5
+        sleep 30
         response=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/ping)
         if [ "$response" != "200" ]; then
           echo "Expected HTTP status 200 but got $response"
