@@ -1,12 +1,13 @@
 package database
 
 import (
-	"database/sql"
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
+	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 )
 
@@ -19,13 +20,13 @@ func (c contextKey) String() string {
 }
 
 type User struct {
-	ID        int       `json:"id"`
-	FirstName string    `json:"first_name"`
-	LastName  string    `json:"last_name"`
-	Email     string    `json:"email"`
-	Password  string    `json:"password,omitempty"`
-	RoleId    int       `json:"role_id"`
-	CreatedAt time.Time `json:"created_at"`
+	ID        int       `json:"id" db:"id"`
+	FirstName string    `json:"first_name" db:"first_name"`
+	LastName  string    `json:"last_name" db:"last_name"`
+	Email     string    `json:"email" db:"email"`
+	Password  string    `json:"password,omitempty" db:"password"`
+	RoleId    int       `json:"role_id" db:"role_id"`
+	CreatedAt time.Time `json:"created_at" db:"created_at"`
 }
 
 type Role struct {
@@ -35,11 +36,51 @@ type Role struct {
 }
 
 type PostgresqlStorage struct {
-	db *sql.DB
+	db *sqlx.DB
+}
+
+func GetLazyPaginatedResponse[V User | Role](r *http.Request, query string) ([]*V, error) {
+	storage, err := GetPgStorageFromRequest(r)
+	if err != nil {
+		return nil, err
+	}
+
+	results := make([]*V, 0)
+
+	page := r.URL.Query().Get("page")
+	if page == "" || page == "0" {
+		page = "1"
+	}
+
+	pageNum, err := strconv.ParseInt(page, 10, 0)
+	if err != nil {
+		return nil, err
+	}
+
+	pageLength := r.URL.Query().Get("pageLength")
+	if pageLength == "" {
+		pageLength = "15"
+	}
+
+	pageLengthNum, err := strconv.ParseInt(pageLength, 10, 0)
+	if err != nil {
+		return nil, err
+	}
+
+	offset := (pageNum - 1) * pageLengthNum
+
+	queryWithLimit := fmt.Sprintf("%s order by id desc offset %d limit %s", query, offset, pageLength)
+
+	err = storage.db.Select(&results, queryWithLimit)
+	if err != nil {
+		return nil, err
+	}
+
+	return results, nil
 }
 
 type Storage interface {
-	GetUsers() ([]*User, error)
+	GetUsers(r *http.Request) ([]*User, error)
 	GetUserById(int) (*User, error)
 	GetUserByEmail(string) (*User, error)
 	CreateUser(firstName, lastName, email, password string) (*User, error)
@@ -67,24 +108,11 @@ func (storage *PostgresqlStorage) GetUserById(id int) (*User, error) {
 	return user, nil
 }
 
-func (storage *PostgresqlStorage) GetUsers() ([]*User, error) {
-	var users []*User = []*User{}
-
+func (storage *PostgresqlStorage) GetUsers(r *http.Request) ([]*User, error) {
 	query := "select id, first_name, last_name, email, role_id, created_at from users"
-	rows, err := storage.db.Query(query)
+	users, err := GetLazyPaginatedResponse[User](r, query)
 	if err != nil {
 		return nil, err
-	}
-
-	defer rows.Close()
-
-	for rows.Next() {
-		var user User
-		if err := rows.Scan(&user.ID, &user.FirstName, &user.LastName, &user.Email, &user.RoleId, &user.CreatedAt); err != nil {
-			return nil, err
-		}
-
-		users = append(users, &user)
 	}
 
 	return users, nil
@@ -178,7 +206,7 @@ func (storage *PostgresqlStorage) GetRoleById(id int) (*Role, error) {
 
 func NewPostgresStorage() (*PostgresqlStorage, error) {
 	dbUrl := os.Getenv("DB_URL")
-	db, err := sql.Open("postgres", dbUrl)
+	db, err := sqlx.Open("postgres", dbUrl)
 	if err != nil {
 		return nil, err
 	}
