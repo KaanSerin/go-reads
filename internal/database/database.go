@@ -206,7 +206,7 @@ func (storage *PostgresqlStorage) GetRoleById(id int) (*Role, error) {
 
 func NewPostgresStorage() (*PostgresqlStorage, error) {
 	dbUrl := os.Getenv("DB_URL")
-	db, err := sqlx.Connect("postgres", dbUrl)
+	db, err := sqlx.Open("postgres", dbUrl)
 	if err != nil {
 		return nil, err
 	}
