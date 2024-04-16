@@ -16,6 +16,7 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
     - uses: actions/checkout@v4
     - name: Build and run app image in background
@@ -23,7 +24,7 @@ jobs:
     - name: Send ping request and check response
       run: |
         sleep 5
-        response=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8080/ping)
+        response=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/ping)
         if [ "$response" != "200" ]; then
           echo "Expected HTTP status 200 but got $response"
           exit 1
