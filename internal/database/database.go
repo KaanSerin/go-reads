@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/kaanserin/go-reads/internal/utils"
 	_ "github.com/lib/pq"
 )
 
@@ -35,16 +36,24 @@ type Role struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
+type Book struct {
+	ID              int       `json:"id" db:"id"`
+	Title           string    `json:"title" db:"title"`
+	Author          string    `json:"author" db:"author"`
+	Genre           string    `json:"genre" db:"genre"`
+	PublicationDate time.Time `json:"publicationDate" db:"publication_date"`
+	Publisher       string    `json:"publisher" db:"publisher"`
+	ISBN            string    `json:"isbn" db:"isbn"`
+	PageCount       string    `json:"pageCount" db:"page_count"`
+	Language        string    `json:"language" db:"language"`
+	Format          string    `json:"format" db:"format"`
+}
+
 type PostgresqlStorage struct {
 	db *sqlx.DB
 }
 
-func GetLazyPaginatedResponse[V User | Role](r *http.Request, query string) ([]*V, error) {
-	storage, err := GetPgStorageFromRequest(r)
-	if err != nil {
-		return nil, err
-	}
-
+func GetLazyPaginatedResponsePG[V any](storage *PostgresqlStorage, r *http.Request, query string) ([]*V, error) {
 	results := make([]*V, 0)
 
 	page := r.URL.Query().Get("page")
@@ -86,6 +95,9 @@ type Storage interface {
 	CreateUser(firstName, lastName, email, password string) (*User, error)
 	DeleteUserById(int) error
 	GetRoleById(int) (*Role, error)
+
+	// Books
+	GetBooks(r *http.Request) ([]*Book, error)
 }
 
 func (storage *PostgresqlStorage) GetUserById(id int) (*User, error) {
@@ -110,7 +122,7 @@ func (storage *PostgresqlStorage) GetUserById(id int) (*User, error) {
 
 func (storage *PostgresqlStorage) GetUsers(r *http.Request) ([]*User, error) {
 	query := "select id, first_name, last_name, email, role_id, created_at from users"
-	users, err := GetLazyPaginatedResponse[User](r, query)
+	users, err := GetLazyPaginatedResponsePG[User](storage, r, query)
 	if err != nil {
 		return nil, err
 	}
@@ -202,6 +214,87 @@ func (storage *PostgresqlStorage) GetRoleById(id int) (*Role, error) {
 	}
 
 	return role, nil
+}
+
+func (storage *PostgresqlStorage) GetBooks(r *http.Request) ([]*Book, error) {
+	return GetLazyPaginatedResponsePG[Book](storage, r, "SELECT id, title, author, genre, publication_date, publisher, isbn, page_count, language, format FROM books")
+}
+
+func (storage *PostgresqlStorage) GetBookById(id int) (*Book, error) {
+	var book *Book = &Book{}
+	err := storage.db.Get(book, "SELECT * from books where id = $1 LIMIT 1", id)
+	if err != nil {
+		return nil, err
+	}
+
+	return book, nil
+}
+
+type UpdateBookDto struct {
+	Title           string    `json:"title" validate:"nonzero" db:"title"`
+	Author          string    `json:"author" validate:"nonzero" db:"author"`
+	Genre           string    `json:"genre" validate:"nonzero" db:"genre"`
+	PublicationDate time.Time `json:"publicationDate" validate:"nonzero" db:"publication_date"`
+	Publisher       string    `json:"publisher" validate:"nonzero" db:"publisher"`
+	ISBN            string    `json:"isbn" validate:"nonzero" db:"isbn"`
+	PageCount       string    `json:"pageCount" validate:"nonzero" db:"page_count"`
+	Language        string    `json:"language" validate:"nonzero" db:"language"`
+	Format          string    `json:"format" validate:"nonzero" db:"format"`
+}
+
+func (storage *PostgresqlStorage) UpdateBookById(id int, payload *UpdateBookDto) (*Book, error) {
+	result, err := storage.db.NamedExec(fmt.Sprintf(`UPDATE books
+	SET title = :title, author = :author, genre = :genre, publication_date = :publication_date,
+	publisher = :publisher, isbn = :isbn, page_count = :page_count, language = :language, format = :format
+	WHERE id = %d`, id), payload)
+
+	if err != nil {
+		return nil, err
+	}
+
+	affectedRows, err := result.RowsAffected()
+	if err != nil {
+		return nil, err
+	}
+
+	if affectedRows == 0 {
+		return nil, &utils.CustomError{
+			Message: fmt.Sprintf("No book found for the given id %d", id),
+		}
+	}
+
+	var book *Book = &Book{}
+	err = storage.db.Get(book, "SELECT * from books WHERE ID = $1", id)
+	if err != nil {
+		return nil, err
+	}
+
+	return book, nil
+}
+
+func (storage *PostgresqlStorage) DeleteBookById(id int) error {
+	_, err := storage.GetBookById(id)
+	if err != nil {
+		return err
+	}
+
+	result, err := storage.db.Exec("DELETE FROM books WHERE id = $1", id)
+	if err != nil {
+		return err
+	}
+
+	rowAff, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowAff == 0 {
+		return &utils.CustomError{
+			Message: fmt.Sprintf("No book found for the given id %d", id),
+		}
+	}
+
+	return nil
 }
 
 func NewPostgresStorage() (*PostgresqlStorage, error) {
