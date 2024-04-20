@@ -15,3 +15,15 @@ CREATE TABLE IF NOT EXISTS users (
     role_id INT DEFAULT 2 constraint users_roles_id_fk references roles,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+CREATE TABLE IF NOT EXISTS books (
+    id SERIAL PRIMARY KEY,
+    title VARCHAR(100) NOT NULL,
+    author VARCHAR(100) NOT NULL,
+    genre VARCHAR(50) NOT NULL,
+    publication_date DATE NOT NULL,
+    publisher VARCHAR(100) NOT NULL,
+    isbn VARCHAR(50) NOT NULL,
+    page_count SMALLINT NOT NULL,
+    language VARCHAR(50) NOT NULL,
+    format VARCHAR(50) NOT NULL
+);
