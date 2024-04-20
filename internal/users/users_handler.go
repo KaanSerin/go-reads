@@ -19,12 +19,11 @@ func AddUserRoutes(g *gin.Engine) {
 	users := g.Group("/users")
 
 	users.Use(middleware.Authentication())
-	users.Use(middleware.AuthorizeAdmin())
 
-	users.GET("/", makeHandlerFunc(getUsers))
+	users.GET("/", middleware.AuthorizeAdmin(), makeHandlerFunc(getUsers))
 	users.GET("/:id", makeHandlerFunc(getUserById))
-	users.PUT("/:id", makeHandlerFunc(updateUser))
-	users.DELETE("/:id", makeHandlerFunc(deleteUserById))
+	users.PUT("/:id", middleware.AuthorizeAdmin(), makeHandlerFunc(updateUser))
+	users.DELETE("/:id", middleware.AuthorizeAdmin(), makeHandlerFunc(deleteUserById))
 }
 
 // Handler Functions
