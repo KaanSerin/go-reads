@@ -112,6 +112,7 @@ type Storage interface {
 	// Book Reviews
 	GetBookReviews(r *http.Request) ([]*BookReview, error)
 	GetBookReviewById(id int) (*BookReview, error)
+	DeleteBookReviewById(id int) error
 }
 
 func (storage *PostgresqlStorage) GetUserById(id int) (*User, error) {
@@ -342,6 +343,26 @@ func (storage *PostgresqlStorage) CreateBookReview(createUserDto *CreateBookRevi
 	}
 
 	return storage.GetBookReviewById(id)
+}
+
+func (storage *PostgresqlStorage) DeleteBookReviewById(id int) error {
+	result, err := storage.db.Exec("DELETE FROM book_reviews WHERE id = $1", id)
+	if err != nil {
+		return err
+	}
+
+	rowsAff, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAff == 0 {
+		return &utils.CustomError{
+			Message: "Book review not found",
+		}
+	}
+
+	return nil
 }
 
 func NewPostgresStorage() (*PostgresqlStorage, error) {

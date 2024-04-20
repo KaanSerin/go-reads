@@ -20,6 +20,7 @@ func AddBookReviewsRoutes(c *gin.Engine) {
 	router.GET("/", middleware.AuthorizeAdmin(), utils.MakeHandlerFunc(getBookReviews))
 	router.POST("/", utils.MakeHandlerFunc(createBookReview))
 	router.GET("/:id", middleware.AuthorizeAdmin(), utils.MakeHandlerFunc(getBookReviewById))
+	router.DELETE("/:id", utils.MakeHandlerFunc(deleteBookReviewById))
 }
 
 func getBookReviews(c *gin.Context) error {
@@ -91,5 +92,51 @@ func createBookReview(c *gin.Context) error {
 	}
 
 	c.JSON(http.StatusOK, bookReview)
+	return nil
+}
+
+func deleteBookReviewById(c *gin.Context) error {
+	idParam, _ := c.Params.Get("id")
+	if idParam == "" {
+		return &utils.CustomError{
+			Message: "No id param in given",
+		}
+	}
+
+	id, err := strconv.Atoi(idParam)
+	if err != nil {
+		c.JSON(400, utils.CustomError{
+			Message: "Id is not a number",
+		})
+
+		return nil
+	}
+
+	storage, err := database.GetPgStorageFromRequest(c.Request)
+	if err != nil {
+		return err
+	}
+
+	userTmp, _ := c.Get("user")
+	user := userTmp.(*database.User)
+	bookReview, err := storage.GetBookReviewById(id)
+	if err != nil {
+		return err
+	}
+
+	if bookReview.UserID != user.ID {
+		return &utils.CustomError{
+			Message: "Forbidden",
+		}
+	}
+
+	if err := storage.DeleteBookReviewById(id); err != nil {
+		return err
+	}
+
+	c.JSON(http.StatusOK, utils.CustomError{
+		Message: "Book review deleted successfully",
+	})
+
 	return nil
 }
