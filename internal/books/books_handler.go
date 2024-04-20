@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/kaanserin/go-reads/internal/database"
+	"github.com/kaanserin/go-reads/internal/middleware"
 	"github.com/kaanserin/go-reads/internal/utils"
 	"gopkg.in/validator.v2"
 )
@@ -14,10 +15,12 @@ import (
 func AddBooksRoutes(r *gin.Engine) {
 	booksGroup := r.Group("books")
 
-	booksGroup.GET("/", utils.MakeHandlerFunc(getBooks))
+	booksGroup.Use(middleware.Authentication())
+
+	booksGroup.GET("/", middleware.AuthorizeAdmin(), utils.MakeHandlerFunc(getBooks))
 	booksGroup.GET("/:id", utils.MakeHandlerFunc(getBookById))
-	booksGroup.PUT("/:id", utils.MakeHandlerFunc(updateBookById))
-	booksGroup.DELETE("/:id", utils.MakeHandlerFunc(deleteBookById))
+	booksGroup.PUT("/:id", middleware.AuthorizeAdmin(), utils.MakeHandlerFunc(updateBookById))
+	booksGroup.DELETE("/:id", middleware.AuthorizeAdmin(), utils.MakeHandlerFunc(deleteBookById))
 }
 
 func getBooks(c *gin.Context) error {
