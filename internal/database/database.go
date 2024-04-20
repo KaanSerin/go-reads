@@ -49,6 +49,16 @@ type Book struct {
 	Format          string    `json:"format" db:"format"`
 }
 
+type BookReview struct {
+	ID        int       `json:"id" db:"id"`
+	BookID    int       `json:"book_id" db:"book_id"`
+	UserID    int       `json:"user_id" db:"user_id"`
+	Score     int       `json:"score" db:"score"`
+	Review    string    `json:"review" db:"review"`
+	CreatedAt time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
+}
+
 type PostgresqlStorage struct {
 	db *sqlx.DB
 }
@@ -98,6 +108,9 @@ type Storage interface {
 
 	// Books
 	GetBooks(r *http.Request) ([]*Book, error)
+
+	// Book Reviews
+	GetBookReviews(r *http.Request) ([]*BookReview, error)
 }
 
 func (storage *PostgresqlStorage) GetUserById(id int) (*User, error) {
@@ -295,6 +308,10 @@ func (storage *PostgresqlStorage) DeleteBookById(id int) error {
 	}
 
 	return nil
+}
+
+func (storage *PostgresqlStorage) GetBookReviews(r *http.Request) ([]*BookReview, error) {
+	return GetLazyPaginatedResponsePG[BookReview](storage, r, "SELECT * from book_reviews")
 }
 
 func NewPostgresStorage() (*PostgresqlStorage, error) {

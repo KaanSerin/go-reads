@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/kaanserin/go-reads/internal/auth"
+	bookreviews "github.com/kaanserin/go-reads/internal/book_reviews"
 	"github.com/kaanserin/go-reads/internal/books"
 	"github.com/kaanserin/go-reads/internal/users"
 )
@@ -16,6 +17,7 @@ func CreateNewRouter() *gin.Engine {
 	users.AddUserRoutes(r)
 	auth.AddAuthRoutes(r)
 	books.AddBooksRoutes(r)
+	bookreviews.AddBookReviewsRoutes(r)
 	r.GET("/ping", func(c *gin.Context) {
 		c.String(http.StatusOK, "pong")
 	})
