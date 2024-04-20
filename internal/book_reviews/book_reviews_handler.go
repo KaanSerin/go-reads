@@ -1,6 +1,7 @@
 package bookreviews
 
 import (
+	"encoding/json"
 	"net/http"
 	"strconv"
 
@@ -8,6 +9,7 @@ import (
 	"github.com/kaanserin/go-reads/internal/database"
 	"github.com/kaanserin/go-reads/internal/middleware"
 	"github.com/kaanserin/go-reads/internal/utils"
+	"gopkg.in/validator.v2"
 )
 
 func AddBookReviewsRoutes(c *gin.Engine) {
@@ -16,6 +18,7 @@ func AddBookReviewsRoutes(c *gin.Engine) {
 	router.Use(middleware.Authentication())
 
 	router.GET("/", middleware.AuthorizeAdmin(), utils.MakeHandlerFunc(getBookReviews))
+	router.POST("/", utils.MakeHandlerFunc(createBookReview))
 	router.GET("/:id", middleware.AuthorizeAdmin(), utils.MakeHandlerFunc(getBookReviewById))
 }
 
@@ -57,6 +60,32 @@ func getBookReviewById(c *gin.Context) error {
 	}
 
 	bookReview, err := storage.GetBookReviewById(id)
+	if err != nil {
+		return err
+	}
+
+	c.JSON(http.StatusOK, bookReview)
+	return nil
+}
+
+func createBookReview(c *gin.Context) error {
+	var createBookReviewDto *database.CreateBookReviewDto = &database.CreateBookReviewDto{}
+	json.NewDecoder(c.Request.Body).Decode(createBookReviewDto)
+
+	if err := validator.Validate(createBookReviewDto); err != nil {
+		return err
+	}
+
+	storage, err := database.GetPgStorageFromRequest(c.Request)
+	if err != nil {
+		return err
+	}
+
+	userVal, _ := c.Get("user")
+	user := userVal.(*database.User)
+	createBookReviewDto.UserID = user.ID
+
+	bookReview, err := storage.CreateBookReview(createBookReviewDto)
 	if err != nil {
 		return err
 	}

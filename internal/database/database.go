@@ -326,6 +326,24 @@ func (storage *PostgresqlStorage) GetBookReviewById(id int) (*BookReview, error)
 	return bookReview, nil
 }
 
+type CreateBookReviewDto struct {
+	BookID int    `json:"bookId" db:"book_id" validate:"nonzero"`
+	UserID int    `json:"userId" db:"user_id"`
+	Score  int    `json:"score" db:"score" validate:"nonzero"`
+	Review string `json:"review" db:"review" validate:"nonzero"`
+}
+
+func (storage *PostgresqlStorage) CreateBookReview(createUserDto *CreateBookReviewDto) (*BookReview, error) {
+	var id int
+	err := storage.db.QueryRow("INSERT INTO book_reviews (book_id, user_id, score, review) VALUES ($1, $2, $3, $4) RETURNING id",
+		createUserDto.BookID, createUserDto.UserID, createUserDto.Score, createUserDto.Review).Scan(&id)
+	if err != nil {
+		return nil, err
+	}
+
+	return storage.GetBookReviewById(id)
+}
+
 func NewPostgresStorage() (*PostgresqlStorage, error) {
 	dbUrl := os.Getenv("DB_URL")
 	db, err := sqlx.Open("postgres", dbUrl)
