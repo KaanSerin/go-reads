@@ -111,6 +111,7 @@ type Storage interface {
 
 	// Book Reviews
 	GetBookReviews(r *http.Request) ([]*BookReview, error)
+	GetBookReviewById(id int) (*BookReview, error)
 }
 
 func (storage *PostgresqlStorage) GetUserById(id int) (*User, error) {
@@ -312,6 +313,17 @@ func (storage *PostgresqlStorage) DeleteBookById(id int) error {
 
 func (storage *PostgresqlStorage) GetBookReviews(r *http.Request) ([]*BookReview, error) {
 	return GetLazyPaginatedResponsePG[BookReview](storage, r, "SELECT * from book_reviews")
+}
+
+func (storage *PostgresqlStorage) GetBookReviewById(id int) (*BookReview, error) {
+	var bookReview *BookReview = &BookReview{}
+
+	err := storage.db.Get(bookReview, "SELECT * FROM book_reviews WHERE ID = $1", id)
+	if err != nil {
+		return nil, err
+	}
+
+	return bookReview, nil
 }
 
 func NewPostgresStorage() (*PostgresqlStorage, error) {
