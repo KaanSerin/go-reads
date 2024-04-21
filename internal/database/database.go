@@ -49,6 +49,16 @@ type Book struct {
 	Format          string    `json:"format" db:"format"`
 }
 
+type BookReview struct {
+	ID        int       `json:"id" db:"id"`
+	BookID    int       `json:"book_id" db:"book_id"`
+	UserID    int       `json:"user_id" db:"user_id"`
+	Score     int       `json:"score" db:"score"`
+	Review    string    `json:"review" db:"review"`
+	CreatedAt time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
+}
+
 type PostgresqlStorage struct {
 	db *sqlx.DB
 }
@@ -98,6 +108,12 @@ type Storage interface {
 
 	// Books
 	GetBooks(r *http.Request) ([]*Book, error)
+
+	// Book Reviews
+	GetBookReviews(r *http.Request) ([]*BookReview, error)
+	GetBookReviewById(id int) (*BookReview, error)
+	DeleteBookReviewById(id int) error
+	UpdateBookReview(id int, updateBookReviewDto UpdateBookReviewDto) (*BookReview, error)
 }
 
 func (storage *PostgresqlStorage) GetUserById(id int) (*User, error) {
@@ -295,6 +311,112 @@ func (storage *PostgresqlStorage) DeleteBookById(id int) error {
 	}
 
 	return nil
+}
+
+func (storage *PostgresqlStorage) GetBookReviews(r *http.Request) ([]*BookReview, error) {
+	return GetLazyPaginatedResponsePG[BookReview](storage, r, "SELECT * from book_reviews")
+}
+
+func (storage *PostgresqlStorage) GetBookReviewById(id int) (*BookReview, error) {
+	var bookReview *BookReview = &BookReview{}
+
+	err := storage.db.Get(bookReview, "SELECT * FROM book_reviews WHERE ID = $1", id)
+	if err != nil {
+		return nil, err
+	}
+
+	return bookReview, nil
+}
+
+type CreateBookReviewDto struct {
+	BookID int    `json:"bookId" db:"book_id" validate:"nonzero"`
+	UserID int    `json:"userId" db:"user_id"`
+	Score  int    `json:"score" db:"score" validate:"nonzero"`
+	Review string `json:"review" db:"review" validate:"nonzero"`
+}
+
+func (storage *PostgresqlStorage) CreateBookReview(createUserDto *CreateBookReviewDto) (*BookReview, error) {
+	var id int
+	err := storage.db.QueryRow("INSERT INTO book_reviews (book_id, user_id, score, review) VALUES ($1, $2, $3, $4) RETURNING id",
+		createUserDto.BookID, createUserDto.UserID, createUserDto.Score, createUserDto.Review).Scan(&id)
+	if err != nil {
+		return nil, err
+	}
+
+	return storage.GetBookReviewById(id)
+}
+
+func (storage *PostgresqlStorage) DeleteBookReviewById(id int) error {
+	result, err := storage.db.Exec("DELETE FROM book_reviews WHERE id = $1", id)
+	if err != nil {
+		return err
+	}
+
+	rowsAff, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAff == 0 {
+		return &utils.CustomError{
+			Message: "Book review not found",
+		}
+	}
+
+	return nil
+}
+
+type UpdateBookReviewDto struct {
+	Score     int       `json:"score" db:"score" validate:"nonzero"`
+	Review    string    `json:"review" db:"review" validate:"nonzero"`
+	UpdatedAt time.Time `db:"updated_at"`
+}
+
+func (storage *PostgresqlStorage) UpdateBookReview(id int, updateBookReviewDto UpdateBookReviewDto) (*BookReview, error) {
+	updateBookReviewDto.UpdatedAt = time.Now()
+	result, err := storage.db.NamedExec(fmt.Sprintf("UPDATE book_reviews SET score = :score, review = :review, updated_at = :updated_at WHERE id = %d", id), updateBookReviewDto)
+	if err != nil {
+		return nil, err
+	}
+
+	rowsAff, err := result.RowsAffected()
+	if err != nil {
+		return nil, err
+	}
+
+	if rowsAff == 0 {
+		return nil, &utils.CustomError{
+			Message: "Book review not found",
+		}
+	}
+
+	var bookReview *BookReview = &BookReview{}
+	if err := storage.db.Get(bookReview, "SELECT * FROM book_reviews WHERE id = $1", id); err != nil {
+		return nil, err
+	}
+
+	return bookReview, nil
+}
+
+func (storage *PostgresqlStorage) GetBookReviewsByBookId(id int, r *http.Request) ([]*BookReview, error) {
+	book, err := storage.GetBookById(id)
+	if err != nil {
+		return nil, err
+	}
+
+	if book == nil {
+		return nil, &utils.CustomError{
+			Message: "Book not found",
+		}
+	}
+
+	query := fmt.Sprintf("SELECT * from book_reviews WHERE book_id = %d", id)
+	bookReviews, err := GetLazyPaginatedResponsePG[BookReview](storage, r, query)
+	if err != nil {
+		return nil, err
+	}
+
+	return bookReviews, nil
 }
 
 func NewPostgresStorage() (*PostgresqlStorage, error) {

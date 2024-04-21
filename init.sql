@@ -27,3 +27,12 @@ CREATE TABLE IF NOT EXISTS books (
     language VARCHAR(50) NOT NULL,
     format VARCHAR(50) NOT NULL
 );
+CREATE TABLE book_reviews (
+    id SERIAL PRIMARY KEY,
+    book_id INT REFERENCES books(id),
+    user_id INT REFERENCES users(id),
+    score SMALLSERIAL,
+    review TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)
