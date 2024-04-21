@@ -19,6 +19,7 @@ func AddBooksRoutes(r *gin.Engine) {
 
 	booksGroup.GET("/", middleware.AuthorizeAdmin(), utils.MakeHandlerFunc(getBooks))
 	booksGroup.GET("/:id", utils.MakeHandlerFunc(getBookById))
+	booksGroup.GET("/:id/reviews", utils.MakeHandlerFunc(getBookReviewsByBookId))
 	booksGroup.PUT("/:id", middleware.AuthorizeAdmin(), utils.MakeHandlerFunc(updateBookById))
 	booksGroup.DELETE("/:id", middleware.AuthorizeAdmin(), utils.MakeHandlerFunc(deleteBookById))
 }
@@ -113,5 +114,26 @@ func deleteBookById(c *gin.Context) error {
 		Message: "Book deleted successfully",
 	})
 
+	return nil
+}
+
+func getBookReviewsByBookId(c *gin.Context) error {
+	storage, err := database.GetPgStorageFromRequest(c.Request)
+	if err != nil {
+		return err
+	}
+
+	idParam, _ := c.Params.Get("id")
+	id, err := strconv.Atoi(idParam)
+	if err != nil {
+		return err
+	}
+
+	bookReviews, err := storage.GetBookReviewsByBookId(id, c.Request)
+	if err != nil {
+		return err
+	}
+
+	c.JSON(http.StatusOK, bookReviews)
 	return nil
 }

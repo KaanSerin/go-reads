@@ -398,6 +398,27 @@ func (storage *PostgresqlStorage) UpdateBookReview(id int, updateBookReviewDto U
 	return bookReview, nil
 }
 
+func (storage *PostgresqlStorage) GetBookReviewsByBookId(id int, r *http.Request) ([]*BookReview, error) {
+	book, err := storage.GetBookById(id)
+	if err != nil {
+		return nil, err
+	}
+
+	if book == nil {
+		return nil, &utils.CustomError{
+			Message: "Book not found",
+		}
+	}
+
+	query := fmt.Sprintf("SELECT * from book_reviews WHERE book_id = %d", id)
+	bookReviews, err := GetLazyPaginatedResponsePG[BookReview](storage, r, query)
+	if err != nil {
+		return nil, err
+	}
+
+	return bookReviews, nil
+}
+
 func NewPostgresStorage() (*PostgresqlStorage, error) {
 	dbUrl := os.Getenv("DB_URL")
 	db, err := sqlx.Open("postgres", dbUrl)
