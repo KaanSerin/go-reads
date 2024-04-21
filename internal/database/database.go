@@ -113,6 +113,7 @@ type Storage interface {
 	GetBookReviews(r *http.Request) ([]*BookReview, error)
 	GetBookReviewById(id int) (*BookReview, error)
 	DeleteBookReviewById(id int) error
+	UpdateBookReview(id int, updateBookReviewDto UpdateBookReviewDto) (*BookReview, error)
 }
 
 func (storage *PostgresqlStorage) GetUserById(id int) (*User, error) {
@@ -363,6 +364,38 @@ func (storage *PostgresqlStorage) DeleteBookReviewById(id int) error {
 	}
 
 	return nil
+}
+
+type UpdateBookReviewDto struct {
+	Score     int       `json:"score" db:"score" validate:"nonzero"`
+	Review    string    `json:"review" db:"review" validate:"nonzero"`
+	UpdatedAt time.Time `db:"updated_at"`
+}
+
+func (storage *PostgresqlStorage) UpdateBookReview(id int, updateBookReviewDto UpdateBookReviewDto) (*BookReview, error) {
+	updateBookReviewDto.UpdatedAt = time.Now()
+	result, err := storage.db.NamedExec(fmt.Sprintf("UPDATE book_reviews SET score = :score, review = :review, updated_at = :updated_at WHERE id = %d", id), updateBookReviewDto)
+	if err != nil {
+		return nil, err
+	}
+
+	rowsAff, err := result.RowsAffected()
+	if err != nil {
+		return nil, err
+	}
+
+	if rowsAff == 0 {
+		return nil, &utils.CustomError{
+			Message: "Book review not found",
+		}
+	}
+
+	var bookReview *BookReview = &BookReview{}
+	if err := storage.db.Get(bookReview, "SELECT * FROM book_reviews WHERE id = $1", id); err != nil {
+		return nil, err
+	}
+
+	return bookReview, nil
 }
 
 func NewPostgresStorage() (*PostgresqlStorage, error) {

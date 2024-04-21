@@ -19,8 +19,9 @@ func AddBookReviewsRoutes(c *gin.Engine) {
 
 	router.GET("/", middleware.AuthorizeAdmin(), utils.MakeHandlerFunc(getBookReviews))
 	router.POST("/", utils.MakeHandlerFunc(createBookReview))
-	router.GET("/:id", middleware.AuthorizeAdmin(), utils.MakeHandlerFunc(getBookReviewById))
+	router.GET("/:id", utils.MakeHandlerFunc(getBookReviewById))
 	router.DELETE("/:id", utils.MakeHandlerFunc(deleteBookReviewById))
+	router.PUT("/:id", utils.MakeHandlerFunc(updateBookReview))
 }
 
 func getBookReviews(c *gin.Context) error {
@@ -138,5 +139,51 @@ func deleteBookReviewById(c *gin.Context) error {
 		Message: "Book review deleted successfully",
 	})
 
+	return nil
+}
+
+func updateBookReview(c *gin.Context) error {
+	var updateBookReviewDto *database.UpdateBookReviewDto = &database.UpdateBookReviewDto{}
+	json.NewDecoder(c.Request.Body).Decode(updateBookReviewDto)
+
+	err := validator.Validate(updateBookReviewDto)
+	if err != nil {
+		return err
+	}
+
+	idParam, _ := c.Params.Get("id")
+	id, err := strconv.Atoi(idParam)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, utils.CustomError{
+			Message: "Id is not a number",
+		})
+
+		return nil
+	}
+
+	storage, err := database.GetPgStorageFromRequest(c.Request)
+	if err != nil {
+		return err
+	}
+
+	bookReview, err := storage.GetBookReviewById(id)
+	if err != nil {
+		return err
+	}
+
+	userTmp, _ := c.Get("user")
+	user := userTmp.(*database.User)
+	if bookReview.UserID != user.ID {
+		return &utils.CustomError{
+			Message: "Forbidden",
+		}
+	}
+
+	bookReview, err = storage.UpdateBookReview(id, *updateBookReviewDto)
+	if err != nil {
+		return err
+	}
+
+	c.JSON(http.StatusOK, bookReview)
 	return nil
 }
