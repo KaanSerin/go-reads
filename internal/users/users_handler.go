@@ -22,6 +22,7 @@ func AddUserRoutes(g *gin.Engine) {
 
 	users.GET("/", middleware.AuthorizeAdmin(), makeHandlerFunc(getUsers))
 	users.GET("/profile", makeHandlerFunc(getUserProfile))
+	users.PUT("/profile", makeHandlerFunc(updateUserProfile))
 	users.GET("/:id", makeHandlerFunc(getUserById))
 	users.PUT("/:id", middleware.AuthorizeAdmin(), makeHandlerFunc(updateUser))
 	users.DELETE("/:id", middleware.AuthorizeAdmin(), makeHandlerFunc(deleteUserById))
@@ -153,6 +154,35 @@ func updateUser(c *gin.Context) error {
 
 func getUserProfile(c *gin.Context) error {
 	user, _ := c.Get("user")
+	c.JSON(http.StatusOK, user)
+	return nil
+}
+
+func updateUserProfile(c *gin.Context) error {
+	var updatePayload *database.UpdateUserDto
+	err := json.NewDecoder(c.Request.Body).Decode(&updatePayload)
+	if err != nil {
+		return err
+	}
+
+	userTmp, _ := c.Get("user")
+	user := userTmp.(*database.User)
+	if user.ID != updatePayload.ID {
+		return &utils.CustomError{
+			Message: "Forbidden",
+		}
+	}
+
+	storage, err := database.GetPgStorageFromRequest(c.Request)
+	if err != nil {
+		return err
+	}
+
+	user, err = storage.UpdateUserById(user.ID, updatePayload)
+	if err != nil {
+		return err
+	}
+
 	c.JSON(http.StatusOK, user)
 	return nil
 }
