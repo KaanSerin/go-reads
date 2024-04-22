@@ -21,6 +21,7 @@ func AddUserRoutes(g *gin.Engine) {
 	users.Use(middleware.Authentication())
 
 	users.GET("/", middleware.AuthorizeAdmin(), makeHandlerFunc(getUsers))
+	users.GET("/profile", makeHandlerFunc(getUserProfile))
 	users.GET("/:id", makeHandlerFunc(getUserById))
 	users.PUT("/:id", middleware.AuthorizeAdmin(), makeHandlerFunc(updateUser))
 	users.DELETE("/:id", middleware.AuthorizeAdmin(), makeHandlerFunc(deleteUserById))
@@ -149,3 +150,10 @@ func updateUser(c *gin.Context) error {
 	c.JSON(http.StatusOK, user)
 	return nil
 }
+
+func getUserProfile(c *gin.Context) error {
+	user, _ := c.Get("user")
+	c.JSON(http.StatusOK, user)
+	return nil
+}
+
