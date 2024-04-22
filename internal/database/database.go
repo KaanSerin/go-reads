@@ -21,13 +21,14 @@ func (c contextKey) String() string {
 }
 
 type User struct {
-	ID        int       `json:"id" db:"id"`
-	FirstName string    `json:"first_name" db:"first_name"`
-	LastName  string    `json:"last_name" db:"last_name"`
-	Email     string    `json:"email" db:"email"`
-	Password  string    `json:"password,omitempty" db:"password"`
-	RoleId    int       `json:"role_id" db:"role_id"`
-	CreatedAt time.Time `json:"created_at" db:"created_at"`
+	ID              int       `json:"id" db:"id"`
+	FirstName       string    `json:"first_name" db:"first_name"`
+	LastName        string    `json:"last_name" db:"last_name"`
+	Email           string    `json:"email" db:"email"`
+	Password        string    `json:"password,omitempty" db:"password"`
+	RoleId          int       `json:"role_id" db:"role_id"`
+	ProfileImageUrl string    `json:"profile_image_url" db:"profile_image_url"`
+	CreatedAt       time.Time `json:"created_at" db:"created_at"`
 }
 
 type Role struct {
@@ -105,6 +106,7 @@ type Storage interface {
 	CreateUser(firstName, lastName, email, password string) (*User, error)
 	DeleteUserById(int) error
 	GetRoleById(int) (*Role, error)
+	UpdateUserProfileImageUrl(id int, objectKey string) error
 
 	// Books
 	GetBooks(r *http.Request) ([]*Book, error)
@@ -119,19 +121,12 @@ type Storage interface {
 func (storage *PostgresqlStorage) GetUserById(id int) (*User, error) {
 	var user *User = &User{}
 
-	err := storage.db.QueryRow(
-		"SELECT id, first_name, last_name, email, role_id, created_at from users where id = $1", id).Scan(
-		&user.ID,
-		&user.FirstName,
-		&user.LastName,
-		&user.Email,
-		&user.RoleId,
-		&user.CreatedAt,
-	)
-
+	err := storage.db.Get(user, "SELECT * from users where id = $1", id)
 	if err != nil {
 		return nil, err
 	}
+
+	user.Password = ""
 
 	return user, nil
 }
@@ -417,6 +412,11 @@ func (storage *PostgresqlStorage) GetBookReviewsByBookId(id int, r *http.Request
 	}
 
 	return bookReviews, nil
+}
+
+func (storage *PostgresqlStorage) UpdateUserProfileImageUrl(id int, objectKey string) error {
+	_, err := storage.db.Exec("UPDATE users SET profile_image_url = $1 WHERE id = $2", objectKey, id)
+	return err
 }
 
 func NewPostgresStorage() (*PostgresqlStorage, error) {
