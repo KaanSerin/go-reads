@@ -119,19 +119,12 @@ type Storage interface {
 func (storage *PostgresqlStorage) GetUserById(id int) (*User, error) {
 	var user *User = &User{}
 
-	err := storage.db.QueryRow(
-		"SELECT id, first_name, last_name, email, role_id, created_at from users where id = $1", id).Scan(
-		&user.ID,
-		&user.FirstName,
-		&user.LastName,
-		&user.Email,
-		&user.RoleId,
-		&user.CreatedAt,
-	)
-
+	err := storage.db.Get(user, "SELECT * from users where id = $1", id)
 	if err != nil {
 		return nil, err
 	}
+
+	user.Password = ""
 
 	return user, nil
 }
