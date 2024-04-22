@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS users (
     email VARCHAR(320),
     password TEXT,
     role_id INT DEFAULT 2 constraint users_roles_id_fk references roles,
+    profile_image_url TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 CREATE TABLE IF NOT EXISTS books (
